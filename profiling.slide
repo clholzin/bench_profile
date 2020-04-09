@@ -1,0 +1,135 @@
+Profiling and Debugging
+Ways and Means
+20:04 21 Jan 2019
+Tags: profiling, pprof, debug
+
+Craig Holzinger
+Engineer, Integrate
+craig.holzinger@integrate.com
+
+
+
+* Profiling
+
+pprof, is a tool native to Golang which supports cpu and memory profiling by function and instruction
+
+- How to get a cpu and memory profile
+- How to use pprof
+- How to Analyze findings
+- How to profile live code
+- How to create user defined traces
+
+
+
+
+
+
+* How to get a profile
+Cpu profile
+
+- go test -v -run=xxx -bench=Foo -cpuprofile=cpu.out
+
+Memory profile
+
+- go test -v -run=xxx -bench=Foo -memprofile=mem.out
+
+Once the test completes the file will be available to run with pprof
+
+- go tool pprof [binary.test if you have it ] cpu.out
+- go tool pprof -http=localhost:8081 <binary>.test cpu.out
+ - go tool pprof -http localhost:8081 profiling.test cputest.out
+
+
+
+
+
+* pprof as a tool
+
+This tool is interactive through the command-line
+When it is active, common things to review would be typeing the word then number or function to review.
+
+- top 10 - this will provide a view of the top 10 functions used the most
+- list <func Name> - this will provide a view of the code and flat / cum totals showing time spent utilzing cpu or memory allocated
+
+It is sometimes helpful to add a count for the amout of times each benchmark is called so a larger sample size is achieved and more data can be gained.
+
+- go test -v -bench=Foo -cpuprofile=cpu.out -count=10
+
+Or use in the code " for i:=0; i<b.N; i++ {} "
+This will iterate over the code a dynamic number of times until time has been reached.
+
+
+
+
+* Live debugging
+
+When using a http server for health checks it is a good habit to also add this import statement so that a live application can be analyzed. 
+
+- _ "net/http/pprof"
+
+Then by association to the health check ip and port an additional route is added so that this information can be accessed.
+
+- http://localhost:<port>/debug/pprof/
+
+
+
+
+* Trace with context
+
+An addition to go1.11 is the user annotated tracing option with allows for more fine grained view of a call stack. The trace tool measures task latency as the time between task creation and when the end function is called, and provides the latency distribution per task type.
+
+Get a trace profile:
+- go test -v -bench=Foo -trace=trace.out
+
+View the trace:
+- go tool trace -http localhost:8081 profiling.test trace.out
+
+.code snips/traceing_show.go
+
+
+
+* context.Context
+Context package is a recently new form of propagating data to layers without having to specify every type in the scope. This helps with refactors as not as many need to be made to the func signatures when adding more data.
+
+- Context provides methods to handle canceling processes as well, either by time or deadlines or by sending cancelation signals.
+
+- Context allows for passing values more generically
+
+- Context is being used now heavely with Mongo Golang Driver 1.0
+
+* context.Context
+.play snips/context_show.go
+
+* context.WithTimeout
+WithTimeout returns WithDeadline(parent, time.Now().Add(timeout)).
+
+Canceling this context releases resources associated with it, so code should call cancel as soon as the operations running in this Context complete:
+
+    func slowOperationWithTimeout(ctx context.Context) (Result, error) {
+    	ctx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+    	defer cancel()  // releases resources if slowOperation completes before timeout elapses
+    	return slowOperation(ctx)
+    }
+
+* context Info
+Do not pass a nil Context, even if a function permits it. Pass context.TODO
+if you are unsure about which Context to use.
+
+Use context Values only for request-scoped data that transits processes and
+APIs, not for passing optional parameters to functions.
+
+The same Context may be passed to functions running in different goroutines;
+Contexts are safe for simultaneous use by multiple goroutines.
+
+* context.WithDeadline
+
+WithDeadline returns a copy of the parent context with the deadline adjusted
+    to be no later than d. If the parent's deadline is already earlier than d,
+    WithDeadline(parent, d) is semantically equivalent to parent. The returned
+    context's Done channel is closed when the deadline expires, when the
+    returned cancel function is called, or when the parent context's Done
+    channel is closed, whichever happens first.
+
+* context At Google
+
+At Google, we require that Go programmers pass a Context parameter as the first argument to every function on the call path between incoming and outgoing requests. This allows Go code developed by many different teams to interoperate well. It provides simple control over timeouts and cancelation and ensures that critical values like security credentials transit Go programs properly.

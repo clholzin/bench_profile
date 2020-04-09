@@ -1,0 +1,72 @@
+Bench and Profile
+09:58 07 April 2020
+Tags: profiling, pprof, debug
+
+Craig Holzinger
+Lead Engineer, Integrate
+craig.holzinger@integrate.com
+
+
+
+
+* Ways to Profiling
+
+- pprof for cpu and memory analysis
+  - go tool pprof
+- live pprof server endpoint to gain access to cpu and memory in a operating application
+- Trace can be used along with pprof
+  - go tool trace
+- benchmarks cpu and memory profiling
+- benchstat used for metric comparison
+  - go get golang.org/x/perf/cmd/benchstat
+
+
+
+
+
+
+* Benchmark
+
+Common flags to use:
+
+- Command
+  - go test -v -run=xxx -bench=<regex> -cpu=<#> -cpuprofile=<file> -memprofile=<file> -count=<#>
+
+- (-bench=<regex>) : flag to search for benchmarks by regular expression
+- (-cpu=1,2,4,8) : number of cpu's to elicit for benchmarks, otherwise GOMAXPROCS env default
+- (-run=xxx) : no run unit
+- (-cpuprofile=cpu.out) : cpu profile, overall function performance w/ stack trace
+- (-memprofile=mem.out) : memory profile, allocation totals and for leak viewing
+- (-count=<#>) : number of times each bench is ran consecutively
+- (-trace=<tract.out>) : static trace profile from benches ran
+
+* Benchmark Example:
+.code main_test.go /^func BenchmarkWork/,/^}/
+.code main_test.go /^func BenchmarkFib28/,/^}/
+- b.N is used for benchmark load, b.N grows 20% in approximate sequence, "The benchmark function must run the target code b.N times. During benchmark execution, b.N is adjusted until the benchmark function lasts long enough to be timed reliably."
+.link https://golang.org/pkg/testing/#hdr-Benchmarks golang.org/testing
+
+
+
+* Bench Commands and Output
+
+go test -v -run=xxx -bench=Work
+
+  goos: darwin
+  goarch: amd64
+  pkg: profiling
+  BenchmarkWork-12    30000      45746 ns/op
+  PASS
+  ok    profiling    5.010s
+
+- 30000 is the number of iterations
+- 45746 ns/op is the avg time per operations in nanoseconds
+- BenchmarkWork-12  - 12 equals availale cpus used on this test
+- ok meaning it completed
+- 5.010s total time for execution of tests in seconds
+
+
+* Bench Memory
+
+
+* Bench Cpu
