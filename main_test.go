@@ -48,10 +48,14 @@ func BenchmarkWork(b *testing.B) {
 	}
 }
 
+var Result int64
+
 func BenchmarkFib20(b *testing.B) {
+	var d int
 	for n := 0; n < b.N; n++ {
-		Fib(20) // run the Fib function b.N times
+		d += Fib(20) // run the Fib function b.N times
 	}
+	Result = int64(d) // prevent compiler optimizing
 }
 
 func BenchmarkFib28(b *testing.B) {

@@ -16,7 +16,7 @@ var fooey func(w http.ResponseWriter, r *http.Request)
 var st map[string][]byte = make(map[string][]byte)
 
 func main() {
-	log.Println("Starting Server")
+	log.Println("Starting Server :8080")
 
 	Start()
 }

@@ -39,6 +39,7 @@ Common flags to use:
 - (-memprofile=mem.out) : memory profile, allocation totals and for leak viewing
 - (-count=<#>) : number of times each bench is ran consecutively
 - (-trace=<tract.out>) : static trace profile from benches ran
+- (-benchtime=<1s>) : seconds to run test, good for capturing longer runs for better profile samples
 
 * Benchmark Example:
 .code main_test.go /^func BenchmarkWork/,/^}/
@@ -50,7 +51,7 @@ Common flags to use:
 
 * Bench Commands and Output
 
-go test -v -run=xxx -bench=Work
+  go test -v -run=xxx -bench=Work
 
   goos: darwin
   goarch: amd64
@@ -66,7 +67,198 @@ go test -v -run=xxx -bench=Work
 - 5.010s total time for execution of tests in seconds
 
 
+
+
+
 * Bench Memory
 
+  go test -v -run=xxx -bench=Work -benchtime=2s -memprofile=mem04092020.out
+- try and organize profile runs by date or time
+  go tool pprof mem04092020.out
 
-* Bench Cpu
+
+  Type: alloc_space
+  Time: Apr 9, 2020 at 2:37pm (MST)
+  Entering interactive mode (type "help" for commands, "o" for options)
+  (pprof) top
+  Showing nodes accounting for 968.02MB, 99.95% of 968.52MB total
+  Dropped 1 node (cum <= 4.84MB)
+        flat  flat%   sum%        cum   cum%
+    781.51MB 80.69% 80.69%   968.02MB 99.95%  profiling.work.func1
+    113.01MB 11.67% 92.36%   186.51MB 19.26%  time.Time.String
+        55MB  5.68% 98.04%       55MB  5.68%  time.Time.Format
+     18.50MB  1.91% 99.95%    18.50MB  1.91%  time.appendInt
+           0     0% 99.95%   968.52MB   100%  profiling.BenchmarkWork
+           0     0% 99.95%   968.52MB   100%  testing.(*B).launch
+           0     0% 99.95%   968.52MB   100%  testing.(*B).runN
+
+
+* Bench Memory View
+
+  (pprof) list profiling.work.func1
+  Total: 968.52MB
+  ROUTINE ======================== profiling.work.func1 in /Users/craig.holzinger/go/src/profiling/main.go
+    781.51MB   968.02MB (flat, cum) 99.95% of Total
+           .          .     63:	return func() {
+           .          .     64:		trace.Log(ctx, "Execute Foo route work flow", "")
+           .          .     65:		//time.Sleep((time.Millisecond * 10) * time.Duration(n))
+           .          .     66:
+           .          .     67:		for i := int64(0); i < n; i++ {
+           .   186.51MB     68:			t := time.Now().String()
+    781.51MB   781.51MB     69:			st[t] = make([]byte, 512)
+           .          .     70:		}
+           .          .     71:
+           .          .     72:		Fib(int(n))
+           .          .     73:
+           .          .     74:		// fmt.Println("finishing request ", n)
+
+
+
+
+
+* Bench Memory View
+- (flat, cum) : Flat is duration spent on given a function and cum is cumulative of current function plus calls above it.
+- 99.95% of Total : This function is responsible for that percentage of memory allocated
+  (pprof) list profiling.work.func1
+  Total: 968.52MB* Bench Cpu
+  ROUTINE ======================== 
+    781.51MB   968.02MB (flat, cum)
+           .          .       :		
+           .   186.51MB     68:	     t := time.Now().String()	 
+    781.51MB   781.51MB     69:	     st[t] = make([]byte, 512)	 
+           .          .       :		
+
+Here we can see that on a single run, t doens't register memory, but the cummulative 
+view does and because it is being stored in st, it isn't freed but added to st. Which
+is why its overall added with 781.51MB for 968.02MB.
+
+
+
+
+
+* Bench CPU
+  go test -v -run=xxx -bench=Work -benchtime=2s -cpuprofile=cpu04092020.out
+  goos: darwin
+  goarch: amd64
+  pkg: profiling
+  BenchmarkWork-12    	  100000	     49867 ns/op
+  PASS
+  ok  	profiling	8.991s
+
+- 100000 is the number of iterations
+- 49867 ns/op is the avg time per operations in nanoseconds
+- BenchmarkWork-12  - 12 equals availale cpus used on this test
+- ok meaning it completed
+- 8.991s total time for execution of tests in seconds
+
+* Bench CPU View
+  go tool pprof cpu04092020.out
+  Type: cpu
+  Time: Apr 9, 2020 at 3:36pm (MST)
+  Duration: 5.63s, Total samples = 6.20s (110.10%)
+  Entering interactive mode (type "help" for commands, "o" for options)
+  (pprof) top
+  Showing nodes accounting for 5450ms, 87.90% of 6200ms total
+  Dropped 48 nodes (cum <= 31ms)
+  Showing top 10 nodes out of 51
+        flat  flat%   sum%        cum   cum%
+      1900ms 30.65% 30.65%     1900ms 30.65%  runtime.memmove
+      1010ms 16.29% 46.94%     1010ms 16.29%  runtime.memclrNoHeapPointers
+       600ms  9.68% 56.61%      730ms 11.77%  runtime.evacuate_faststr
+       440ms  7.10% 63.71%     1720ms 27.74%  runtime.mallocgc
+       370ms  5.97% 69.68%      370ms  5.97%  runtime.(*mspan).init
+       310ms  5.00% 74.68%      310ms  5.00%  runtime.findObject
+       280ms  4.52% 79.19%      280ms  4.52%  profiling.Fib
+       270ms  4.35% 83.55%      800ms 12.90%  runtime.scanobject
+       160ms  2.58% 86.13%      160ms  2.58%  runtime.pageIndexOf
+       110ms  1.77% 87.90%      890ms 14.35%  runtime.mapassign_faststr
+
+* Bench CPU View
+  (pprof) list profiling.Fib  
+  Total: 6.20s
+  ROUTINE ======================== profiling.Fib in /Users/craig.holzinger/go/src/profiling/main.go
+       280ms      440ms (flat, cum)  7.10% of Total
+           .          .     73:
+           .          .     74:		// fmt.Println("finishing request ", n)
+           .          .     75:	}
+           .          .     76:}
+           .          .     77:
+        80ms       80ms     78:func Fib(n int) int {
+           .          .     79:	switch n {
+        40ms       40ms     80:	case 0:
+           .          .     81:		return 0
+           .          .     82:	case 1:
+        10ms       10ms     83:		return 1
+           .          .     84:	case 2:
+        30ms       30ms     85:		return 1
+           .          .     86:	default:
+       120ms      280ms     87:		return Fib(n-1) + Fib(n-2)
+           .          .     88:	}
+           .          .     89:}
+
+* Bench CPU View Assembly (list runtime.memmove)
+  (pprof) list runtime.memmove
+  Total: 6.20s
+  ROUTINE ======================== runtime.memmove in /usr/local/Cellar/go/1.12.5/libexec/src/runtime/memmove_amd64.s
+       1.90s      1.90s (flat, cum) 30.65% of Total
+           .          .     31:// func memmove(to, from unsafe.Pointer, n uintptr)
+  ......................................................
+        10ms       10ms    179:	MOVOU	(SI), X0
+           .          .    180:	MOVOU	-16(SI)(BX*1), X1
+        10ms       10ms    181:	MOVOU	X0, (DI)
+        10ms       10ms    182:	MOVOU	X1, -16(DI)(BX*1)
+           .          .    183:	RET
+           .          .    184:move_33through64:
+           .          .    185:	MOVOU	(SI), X0
+           .          .    186:	MOVOU	16(SI), X1
+           .          .    187:	MOVOU	-32(SI)(BX*1), X2
+           .          .    188:	MOVOU	-16(SI)(BX*1), X3
+       1.38s      1.38s    189:	MOVOU	X0, (DI)
+       430ms      430ms    190:	MOVOU	X1, 16(DI)
+           .          .    191:	MOVOU	X2, -32(DI)(BX*1)
+           .          .    192:	MOVOU	X3, -16(DI)(BX*1)
+           .          .    193:	RET
+           .          .    194:move_65through128:
+        10ms       10ms    195:	MOVOU	(SI), X0
+
+
+* CPU SVG / WEB view
+
+.image profile001_cpu.svg 2200 1200
+
+* Mem SVG / WEB view
+
+.image profile001_mem.svg 1200 800
+
+
+* Sample
+Its important to get a large enough sample, 
+Usually you want thousands of iterations, if this 
+isn't possible, consider using -count to force more
+samples.
+
+* Pprof http
+Profile Descriptions:
+
+  -allocs: A sampling of all past memory allocations
+  -block: Stack traces that led to blocking on synchronization primitives
+  -cmdline: The command line invocation of the current program
+
+  -goroutine: Stack traces of all current goroutines
+
+  -heap: A sampling of memory allocations of live objects. You can specify the gc
+   GET parameter to run GC before taking the heap sample.
+
+  -mutex: Stack traces of holders of contended mutexes
+
+  -profile: CPU profile. You can specify the duration in the seconds GET
+   parameter. After you get the profile file, use the go tool pprof
+   command to investigate the profile. threadcreate: Stack traces that
+   led to the creation of new OS threads
+
+  -trace: A trace of execution of the current program. You can specify
+   the duration in the seconds GET parameter. After you get the trace 
+   file, use the go tool trace command to investigate the trace.
+
+
+
