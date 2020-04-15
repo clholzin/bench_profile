@@ -37,9 +37,29 @@ Common flags to use:
 - (-run=xxx) : no run unit
 - (-cpuprofile=cpu.out) : cpu profile, overall function performance w/ stack trace
 - (-memprofile=mem.out) : memory profile, allocation totals and for leak viewing
-- (-count=<#>) : number of times each bench is ran consecutively
+- (-count=<#>) : number of times each test and bench is ran consecutively
 - (-trace=<tract.out>) : static trace profile from benches ran
-- (-benchtime=<1s>) : seconds to run test, good for capturing longer runs for better profile samples
+- (-benchtime=<1h30s>) : seconds or times to run test, good for capturing longer runs for better profile samples
+
+
+
+
+* Test and Bench Help
+  go help testflag
+
+
+* Test Coverage - quick look
+
+  go test -v -coverprofile=cover.out
+
+  go tool cover -html=cover.out -o coverage.html
+  :go tool cover -html=cover2.out -o cover2.html
+
+This will create a file that we can use to view line by line coverage
+Good for hard to reach places.
+
+* Test Main
+
 
 * Benchmark Example:
 .code main_test.go /^func BenchmarkWork/,/^}/
@@ -231,11 +251,29 @@ is why its overall added with 781.51MB for 968.02MB.
 .image profile001_mem.svg 1200 800
 
 
-* Sample
+* Sample Size Matters
 Its important to get a large enough sample, 
 Usually you want thousands of iterations, if this 
-isn't possible, consider using -count to force more
-samples.
+isn't possible, consider using
+
+  -count=100
+or
+
+  -benchtime=5s | -benchtime=2500x
+
+to force more samples.
+
+
+* Saving Test Binarys 
+If you need to capture test binaries to compare with
+the next run. use (-c)
+
+  go test -c
+  mv this.test this.golden
+
+
+
+
 
 * Pprof http
 Profile Descriptions:
