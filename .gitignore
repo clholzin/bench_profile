@@ -1,3 +1,5 @@
 *.swp
 *.golden
 *.out
+*.html
+*.test

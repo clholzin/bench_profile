@@ -53,7 +53,7 @@ func (h httpStats) Foo() func(w http.ResponseWriter, r *http.Request) {
 		reqNumber := h.reqcount + 1
 		h.reqcount = reqNumber
 		trace.WithRegion(ctx, "Foo do work", work(ctx, reqNumber))
-		fmt.Fprintf(w, "Profiling is awesome sauce, %q", html.EscapeString(r.URL.Path))
+		fmt.Fprintf(w, "Profiling is awesome sauce, %q request: %d", html.EscapeString(r.URL.Path), reqNumber)
 	}
 	return fooey
 

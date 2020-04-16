@@ -1,11 +1,47 @@
-Bench and Profile
-09:58 07 April 2020
+Coverage, Bench, and Profile
+15 April 2020
 Tags: profiling, pprof, debug
 
 Craig Holzinger
 Lead Engineer, Integrate
 craig.holzinger@integrate.com
 
+
+
+* Test and Bench Help
+  go help testflag
+Learn it, love it
+
+
+
+* Test Coverage - quick look
+cover will output just the percentage, good for quick iteration
+
+  go test -v -cover
+
+coverprofile creates output for the cover tool
+  
+  go test -v -coverprofile=cover.out
+
+Now with our new cover.out, we can visualize it line by line
+  
+  go tool cover -html=cover.out -o coverage.html
+  go tool cover -html=cover2.out -o coverage2.html
+
+This will create a file that we can use to view line by line coverage
+Good for hard to reach places.
+
+
+
+
+
+* Test Main
+Use TestMain to setup before and teardown after tests run, 
+additionally if you need to execute the main thread to run
+integration tests or control flag logic.
+.code main_test.go /^func TestMain/,/^}/
+
+func init can be used as well but its not aware of the tests finishing
 
 
 
@@ -29,7 +65,6 @@ craig.holzinger@integrate.com
 
 Common flags to use:
 
-- Command
   - go test -v -run=xxx -bench=<regex> -cpu=<#> -cpuprofile=<file> -memprofile=<file> -count=<#>
 
 - (-bench=<regex>) : flag to search for benchmarks by regular expression
@@ -44,21 +79,6 @@ Common flags to use:
 
 
 
-* Test and Bench Help
-  go help testflag
-
-
-* Test Coverage - quick look
-
-  go test -v -coverprofile=cover.out
-
-  go tool cover -html=cover.out -o coverage.html
-  :go tool cover -html=cover2.out -o cover2.html
-
-This will create a file that we can use to view line by line coverage
-Good for hard to reach places.
-
-* Test Main
 
 
 * Benchmark Example:

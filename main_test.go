@@ -20,7 +20,7 @@ func init() {
 
 func TestMain(m *testing.M) {
 	// setup before tests
-	go main()
+	//go main()
 	os.Exit(m.Run())
 	// teardown after tests
 }
@@ -47,7 +47,7 @@ func TestWork(t *testing.T) {
 }
 
 func BenchmarkFoo(b *testing.B) {
-	go Start()
+	//go Start()
 	time.Sleep(time.Second * 3)
 	count := 0
 
